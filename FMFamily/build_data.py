@@ -12,7 +12,7 @@ import numpy as np
 def load_data():
     train_data = {}
 
-    file_path = '/Users/wuxikun/Downloads/deep_learning-master/DeepFM/data/tiny_train_input.csv'
+    file_path = 'tiny_train_input.csv'
     data = pd.read_csv(file_path, header=None)
     data.columns = ['c' + str(i) for i in range(data.shape[1])]
     label = data.c0.values

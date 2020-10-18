@@ -15,7 +15,7 @@ class HyperArgs():
     feature_size = 100  # 特征个数
     embedding_size = 256  # 嵌入维度 这里是FM第二个因子v向量维度, DNN层和FM输入相同
     deep_layers = [512, 256, 128]  # DNN各层维度数组
-    field_size = 15  # 按领域区分特征的特征field个数
+    field_size = 0  # 按领域区分特征的特征field个数
 
     # 训练中参数
     epoch = 3
@@ -44,7 +44,7 @@ class DeepFM():
     def build_model(self):
 
         # 输入数据 feat_index 是特征下标用于 取FM算法第一个因子权重及第二因子的v向量
-        self.feat_index = tf.placeholder(tf.int32, [None, None], "feat_indx")
+        self.feat_index = tf.placeholder(tf.int32, [None, None], "feat_index")
         self.feat_value = tf.placeholder(tf.float32, [None, None], "feat_value")
         self.label = tf.placeholder(tf.float32, [None, None], "label")
 
@@ -58,7 +58,7 @@ class DeepFM():
             self.weight["first_actor_weight"],  self.feat_index
         ), tf.reshape(self.feat_value, [-1, self.field_size, 1]))
         # 求和 ∑W1i * Xi
-        self.fm_first_actor = tf.reduce_sum(self.fm_first_actor, 2)
+        self.fm_first_actor = tf.reduce_sum(self.fm_first_actor, 2) # (batch_size, feature_size)
 
         # 第二个因子
         self.weight["embedding_weight"] = tf.Variable(
@@ -68,15 +68,15 @@ class DeepFM():
 
         # embed_part_weight -> (batch_size, field_size, embedding_size)
         tmp = tf.reshape(self.feat_value, [-1, self.field_size, 1])
-        self.embed_part = tf.multiply(self.embed_part_weight, tmp)
+        self.embed_part = tf.multiply(self.embed_part_weight, tmp)  # Vi Xi (batch_size, field_size, embed_dim)
 
-        self.second_factor_sum = tf.reduce_sum(self.embed_part, 1)
-        self.second_factor_sum_square = tf.square(self.second_factor_sum)
+        self.second_factor_sum = tf.reduce_sum(self.embed_part, 1) #  (batch_size, embed_dim)
+        self.second_factor_sum_square = tf.square(self.second_factor_sum)  #  (batch_size, embed_dim)
 
-        self.second_factor_square = tf.square(self.embed_part)
-        self.second_factor_square_sum = tf.reduce_sum(self.second_factor_square, 1)
+        self.second_factor_square = tf.square(self.embed_part)  # (batch_size, field_size, embed_dim)
+        self.second_factor_square_sum = tf.reduce_sum(self.second_factor_square, 1)  #  (batch_size, embed_dim)
 
-        self.second_factor = 0.5 * tf.subtract(self.second_factor_sum_square, self.second_factor_square_sum)
+        self.second_factor = 0.5 * tf.subtract(self.second_factor_sum_square, self.second_factor_square_sum) # (batch_size, embed_dim)
 
         # deep part
         deep_input_size = self.embedding_size * self.field_size
@@ -108,6 +108,12 @@ class DeepFM():
                 tf.matmul(self.deep_embedding, self.weight["layer_" + str(i)]),
                 self.weight["bias_" + str(i)]
             )
+
+            # self.deep_embedding = tf.nn.xw_plus_b(
+            #     self.deep_embedding, self.weight["layer_" + str(i)],
+            #     self.weight["bias_" + str(i)]
+            # )
+
             self.deep_embedding = self.deep_activation(self.deep_embedding)
 
         merge_layer_size = self.field_size + self.embedding_size + self.deep_layers[-1]

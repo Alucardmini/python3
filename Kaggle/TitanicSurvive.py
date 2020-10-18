@@ -174,20 +174,24 @@ print("----")
 
 pred = model.predict(X_test)
 output=pd.DataFrame({'PassengerId':test['PassengerId'],'Survived':pred})
+output['Survived'] = output['Survived'].astype("int")
+
+print(output.dtypes)
+
 output.to_csv('data/titanic//submission.csv', index=False)
 
 
-from sklearn.model_selection import cross_val_score
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
-
-RF=RandomForestClassifier(random_state=1)
-PRF=[{'n_estimators':[10,100],'max_depth':[3,6],'criterion':['gini','entropy']}]
-GSRF=GridSearchCV(estimator=RF, param_grid=PRF, scoring='accuracy',cv=2)
-scores_rf=cross_val_score(GSRF,X_train,y_train,scoring='accuracy',cv=5)
-
-
-model=GSRF.fit(X_train, y_train)
+# from sklearn.model_selection import cross_val_score
+# from sklearn.ensemble import RandomForestClassifier
+# from sklearn.model_selection import GridSearchCV
+#
+# RF=RandomForestClassifier(random_state=1)
+# PRF=[{'n_estimators':[10,100],'max_depth':[3,6],'criterion':['gini','entropy']}]
+# GSRF=GridSearchCV(estimator=RF, param_grid=PRF, scoring='accuracy',cv=2)
+# scores_rf=cross_val_score(GSRF,X_train,y_train,scoring='accuracy',cv=5)
+#
+#
+# model=GSRF.fit(X_train, y_train)
 
 # print(GSRF.score(X_train,y_train))
 

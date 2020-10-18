@@ -22,7 +22,7 @@ class HyperArgs(object):
     # 训练中参数
     epoch = 3
     batch_size = 64
-    learning_rate = 0.05
+    learning_rate = 0.1
     l2_reg_rate = 0.01
     is_training = False
     checkpoint_dir = '/Users/wuxikun/Documents/gRPC/python3/FMFamily/model/'
@@ -67,9 +67,11 @@ class FFM(object):
             tf.random_normal([self.fm_field_size, self.feature_size, self.embedding_size], 0.0, 0.01), name="embedding_weight"
         )
 
-        fm_result = None
+        ffm_result = tf.constant(0, dtype=tf.float32)
         for i in range(self.fm_field_size):
             for j in range(i + 1, self.fm_field_size):
+                embed_w = self.weight["embedding_weight"]
+                tmp = self.weight["embedding_weight"][j]
                 vi_fj = tf.nn.embedding_lookup(self.weight["embedding_weight"][j], self.feat_index) # [batch, field_size, embedding_size]
                 vj_fi = tf.nn.embedding_lookup(self.weight["embedding_weight"][i], self.feat_index) # [batch, field_size, embedding_size]
                 wij = tf.reduce_sum(tf.multiply(vi_fj, vj_fi), axis=2) # (batch_x, field_size)
@@ -79,12 +81,10 @@ class FFM(object):
                 xij = tf.multiply(x_i, x_j)
                 xij = tf.expand_dims(xij, 1)
 
-                if (fm_result == None):
-                    fm_result = tf.multiply(wij, xij)  # (batch, 1)
-                else:
-                    fm_result += tf.multiply(wij, xij)  # (batch_x, field_size)
 
-        merge = fm_result + self.fm_first_actor  # (batch_x, field_size)
+                ffm_result += tf.multiply(wij, xij)  # (batch_x, field_size)
+
+        merge = ffm_result + self.fm_first_actor  # (batch_x, field_size)
 
         merge_layer_size = self.field_size
         init_value = np.sqrt(np.sqrt(2.0 / (merge_layer_size + 1)))
